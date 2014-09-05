@@ -17,6 +17,7 @@ namespace Microsoft.Samples.Kinect.BodyBasics
     using System.Windows.Media;
     using System.Windows.Media.Imaging;
     using Microsoft.Kinect;
+    using osc.net;
 
     /// <summary>
     /// Interaction logic for MainWindow
@@ -274,6 +275,9 @@ namespace Microsoft.Samples.Kinect.BodyBasics
             {
                 this.bodyFrameReader.FrameArrived += this.Reader_FrameArrived;
             }
+
+            oscClient = new OscUdpClient(new OscEndpoint("10.2.8.185", 7000));
+            oscClient.Connect();
         }
 
         /// <summary>
@@ -296,6 +300,8 @@ namespace Microsoft.Samples.Kinect.BodyBasics
                 this.kinectSensor = null;
             }
         }
+
+        OscUdpClient oscClient;
 
         double maxSumMovement = 0.00001;
         double sumMovementFiltered = 0;
@@ -414,6 +420,12 @@ namespace Microsoft.Samples.Kinect.BodyBasics
 
                             dc.DrawRectangle(this.handLassoBrush, null, new Rect(20, 20, sumMovement*300.0/maxSumMovement, 20));
                             dc.DrawRectangle(this.handLassoBrush, null, new Rect(20, 50, sumMovementFiltered * 300.0 / maxSumMovement, 20));
+
+                            var builder = new MessageBuilder();
+                            builder.SetAddress("/sumMovement");
+                            builder.PushAtom((float)sumMovement);
+
+                            oscClient.SendMessageAsync(builder.ToMessage(), null);
                         }
                     }
 

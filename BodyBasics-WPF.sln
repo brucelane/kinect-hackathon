@@ -1,7 +1,11 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 2012
+# Visual Studio 2013
+VisualStudioVersion = 12.0.30501.0
+MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BodyBasics-WPF", "BodyBasics-WPF.csproj", "{269A7B21-FBFE-4E7A-8BBE-C8DE2EC0D833}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "osc.net", "osc.net\osc.net\osc.net.csproj", "{C9EAE470-365B-45DF-9CBA-6F6C014C8D9C}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -13,6 +17,10 @@ Global
 		{269A7B21-FBFE-4E7A-8BBE-C8DE2EC0D833}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{269A7B21-FBFE-4E7A-8BBE-C8DE2EC0D833}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{269A7B21-FBFE-4E7A-8BBE-C8DE2EC0D833}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C9EAE470-365B-45DF-9CBA-6F6C014C8D9C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C9EAE470-365B-45DF-9CBA-6F6C014C8D9C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C9EAE470-365B-45DF-9CBA-6F6C014C8D9C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C9EAE470-365B-45DF-9CBA-6F6C014C8D9C}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
