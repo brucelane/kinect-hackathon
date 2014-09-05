@@ -408,7 +408,7 @@ namespace Microsoft.Samples.Kinect.BodyBasics
 
                                     sumXpos += position.X;
                                     sumYpos += position.Y;
-                                       centers++;
+                                    centers++;
                                 }
 
                                 DepthSpacePoint depthSpacePoint = this.coordinateMapper.MapCameraPointToDepthSpace(position);
