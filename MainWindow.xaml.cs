@@ -330,7 +330,9 @@ namespace Microsoft.Samples.Kinect.BodyBasics
 
 
             double sumMovement = 0;
-           
+            double sumXpos = 0;
+            double sumYpos = 0;
+            int centers = 0;
             
             IReadOnlyDictionary<JointType, Joint> oldJoints = null;
 
@@ -396,10 +398,16 @@ namespace Microsoft.Samples.Kinect.BodyBasics
                                     double dY = Math.Pow(oldPosition.Y - position.Y, 2.0);
                                     double dZ = Math.Pow(oldPosition.Z - position.Z, 2.0);
                                     sumMovement +=Math.Sqrt( dX + dY + dZ );
+
+
+                                    sumXpos += position.X;
+                                    sumYpos += position.Y;
+                                       centers++;
                                 }
 
                                 DepthSpacePoint depthSpacePoint = this.coordinateMapper.MapCameraPointToDepthSpace(position);
                                 jointPoints[jointType] = new Point(depthSpacePoint.X, depthSpacePoint.Y);
+
                             }
 
                             this.DrawBody(joints, jointPoints, dc, drawPen);
@@ -411,9 +419,20 @@ namespace Microsoft.Samples.Kinect.BodyBasics
                             maxSumMovement = Math.Max(maxSumMovement, sumMovement) * 0.999;
 
                             sumMovementFiltered += (sumMovement - sumMovementFiltered) * 0.1;
+                            dc.DrawRectangle(this.handLassoBrush, null, new Rect(0, 80, this.displayWidth, 10));
 
-                            dc.DrawRectangle(this.handLassoBrush, null, new Rect(20, 20, sumMovement*300.0/maxSumMovement, 20));
-                            dc.DrawRectangle(this.handLassoBrush, null, new Rect(20, 50, sumMovementFiltered * 300.0 / maxSumMovement, 20));
+
+
+                            dc.DrawRectangle(this.handLassoBrush, null, new Rect(0, 20, sumMovement * this.displayWidth / maxSumMovement, 20));
+                            dc.DrawRectangle(this.handLassoBrush, null, new Rect(0, 50, sumMovementFiltered * this.displayWidth / maxSumMovement, 20));
+
+                            double centerX = this.displayWidth * (.5 + sumXpos / centers);
+                            double centerY = this.displayHeight * (.5 -  sumYpos / centers);
+
+                            dc.DrawRectangle(this.handLassoBrush, null, new Rect(centerX  -25, centerY  - 25, 50, 50));
+
+
+                            Console.Out.WriteLine("CENTER {0} {1}", centerX, centerY);
                         }
                     }
 
