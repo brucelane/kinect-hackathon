@@ -279,7 +279,7 @@ namespace Microsoft.Samples.Kinect.BodyBasics
 
             try
             {
-                oscClient = new OscUdpClient(new OscEndpoint("10.2.8.185", 7000));
+                oscClient = new OscUdpClient(new OscEndpoint("10.2.8.93", 7000));
                 oscClient.Connect();
             }
             catch
