@@ -276,8 +276,16 @@ namespace Microsoft.Samples.Kinect.BodyBasics
                 this.bodyFrameReader.FrameArrived += this.Reader_FrameArrived;
             }
 
-            oscClient = new OscUdpClient(new OscEndpoint("10.2.8.185", 7000));
-            oscClient.Connect();
+
+            try
+            {
+                oscClient = new OscUdpClient(new OscEndpoint("10.2.8.185", 7000));
+                oscClient.Connect();
+            }
+            catch
+            {
+                oscClient = null;
+            }
         }
 
         /// <summary>
@@ -305,6 +313,7 @@ namespace Microsoft.Samples.Kinect.BodyBasics
 
         double maxSumMovement = 0.00001;
         double sumMovementFiltered = 0;
+        double handHeadHeightFiltered = 0;
 
         /// <summary>
         /// Handles the body frame data arriving from the sensor
@@ -338,8 +347,10 @@ namespace Microsoft.Samples.Kinect.BodyBasics
             double sumMovement = 0;
             double sumXpos = 0;
             double sumYpos = 0;
+            double handHeadHeight = 0;
+            int handHeightCount = 0;
             int centers = 0;
-            
+
             IReadOnlyDictionary<JointType, Joint> oldJoints = null;
 
             if (dataReceived)
@@ -347,9 +358,9 @@ namespace Microsoft.Samples.Kinect.BodyBasics
                 using (DrawingContext dc = this.drawingGroup.Open())
                 {
                     // Draw a transparent background to set the render size
-                    dc.DrawRectangle(Brushes.Black, null, new Rect(0.0, 0.0, this.displayWidth, this.displayHeight));
+                    dc.DrawRectangle(Brushes.White, null, new Rect(0.0, 0.0, this.displayWidth, this.displayHeight));
 
-             
+
                     int penIndex = 0;
                     foreach (Body body in this.bodies)
                     {
@@ -357,25 +368,26 @@ namespace Microsoft.Samples.Kinect.BodyBasics
 
                         if (body.IsTracked)
                         {
-                            if(cachedBodies != null)
-                            { 
-                            var oldMatchingBody = this.cachedBodies.FirstOrDefault((cachedBodyToTest) => cachedBodyToTest.TrackingId == body.TrackingId);
-                            if(oldMatchingBody != null)
+                            if (cachedBodies != null)
                             {
+                                var oldMatchingBody = this.cachedBodies.FirstOrDefault((cachedBodyToTest) => cachedBodyToTest.TrackingId == body.TrackingId);
+                                if (oldMatchingBody != null)
+                                {
 
-                               oldJoints  = oldMatchingBody.Joints;
+                                    oldJoints = oldMatchingBody.Joints;
+                                }
+                                else
+                                {
+                                    oldJoints = null;
+                                }
                             }
-                            else
-                            {
-                                oldJoints = null;
-                            }
-                        }
-                                //foreach (Body b in this.bodies)
-                                //{
-                                //    b.TrackingId
-                                //}
 
-                                // Find the old body based on unique ID
+                            //foreach (Body b in this.bodies)
+                            //{
+                            //    b.TrackingId
+                            //}
+
+                            // Find the old body based on unique ID
 
 
 
@@ -403,8 +415,7 @@ namespace Microsoft.Samples.Kinect.BodyBasics
                                     double dX = Math.Pow(oldPosition.X - position.X, 2.0);
                                     double dY = Math.Pow(oldPosition.Y - position.Y, 2.0);
                                     double dZ = Math.Pow(oldPosition.Z - position.Z, 2.0);
-                                    sumMovement +=Math.Sqrt( dX + dY + dZ );
-
+                                    sumMovement += Math.Sqrt(dX + dY + dZ);
 
                                     sumXpos += position.X;
                                     sumYpos += position.Y;
@@ -421,32 +432,58 @@ namespace Microsoft.Samples.Kinect.BodyBasics
                             this.DrawHand(body.HandLeftState, jointPoints[JointType.HandLeft], dc);
                             this.DrawHand(body.HandRightState, jointPoints[JointType.HandRight], dc);
 
-                            Console.Out.WriteLine("{0}: {1}", sumMovement, maxSumMovement);
                             maxSumMovement = Math.Max(maxSumMovement, sumMovement) * 0.999;
 
                             sumMovementFiltered += (sumMovement - sumMovementFiltered) * 0.1;
-                            dc.DrawRectangle(this.handLassoBrush, null, new Rect(0, 80, this.displayWidth, 10));
-
-
 
                             dc.DrawRectangle(this.handLassoBrush, null, new Rect(0, 20, sumMovement * this.displayWidth / maxSumMovement, 20));
                             dc.DrawRectangle(this.handLassoBrush, null, new Rect(0, 50, sumMovementFiltered * this.displayWidth / maxSumMovement, 20));
 
                             double centerX = this.displayWidth * (.5 + sumXpos / centers);
-                            double centerY = this.displayHeight * (.5 -  sumYpos / centers);
+                            double centerY = this.displayHeight * (.5 - sumYpos / centers);
 
-                            dc.DrawRectangle(this.handLassoBrush, null, new Rect(centerX  -25, centerY  - 25, 50, 50));
+                            dc.DrawRectangle(this.handLassoBrush, null, new Rect(centerX - 25, centerY - 25, 50, 50));
 
 
-                            Console.Out.WriteLine("CENTER {0} {1}", centerX, centerY);
+                            // Console.Out.WriteLine("{0}: {1}", sumMovement, maxSumMovement);
+                            // Console.Out.WriteLine("CENTER {0} {1}", centerX, centerY);
 
+                            var head = body.Joints[JointType.Head];
+                            if ((int)body.HandLeftState > 1 && (int)body.HandRightState > 1 && head.TrackingState == TrackingState.Tracked)
+                            {
+                                handHeightCount++;
+                                handHeadHeight = (body.Joints[JointType.HandLeft].Position.Y + body.Joints[JointType.HandRight].Position.Y) - 2*body.Joints[JointType.Head].Position.Y;
+                            }
+                        }
+
+                        var v = 0.0;
+                        if(handHeightCount > 0) {
+                            v = handHeadHeight / handHeightCount;
+                        }
+                        handHeadHeightFiltered += (v - handHeadHeightFiltered) * 0.3;
+
+                        // Console.WriteLine(handHeadHeightFiltered);
+
+                        if(handHeadHeightFiltered > 0) {
+                            dc.DrawRectangle(this.handLassoBrush, null, new Rect(0, 70, this.displayWidth*handHeadHeightFiltered / 0.5, 10));
+                        }
+                        
+
+                        if (oscClient != null)
+                        {
                             var builder = new MessageBuilder();
                             builder.SetAddress("/sumMovement");
                             builder.PushAtom((float)sumMovement);
 
-                            oscClient.SendMessageAsync(builder.ToMessage(), null);
+                            SendMessage(builder);
 
+                            builder = new MessageBuilder();
+                            builder.SetAddress("/handsHeadHeight");
+                            builder.PushAtom((float)handHeadHeightFiltered);
+
+                            SendMessage(builder);
                         }
+
                     }
 
                     // prevent drawing outside of our render area
@@ -456,6 +493,19 @@ namespace Microsoft.Samples.Kinect.BodyBasics
 
             this.cachedBodies = this.bodies;
             this.bodies = null;
+        }
+
+
+        private void SendMessage(MessageBuilder builder)
+        {
+            try
+            {
+                oscClient.SendMessageAsync(builder.ToMessage(), null);
+            }
+            catch
+            {
+
+            }
         }
 
         /// <summary>
