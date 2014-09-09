@@ -279,12 +279,22 @@ namespace Microsoft.Samples.Kinect.BodyBasics
 
             try
             {
-                oscClient = new OscUdpClient(new OscEndpoint("10.2.8.93", 7000));
+                oscClient = new OscUdpClient(new OscEndpoint("172.20.10.11", 7000));
                 oscClient.Connect();
             }
             catch
             {
                 oscClient = null;
+            }
+
+            try
+            {
+                oscClient2 = new OscUdpClient(new OscEndpoint("172.20.10.12", 7000));
+                oscClient2.Connect();
+            }
+            catch
+            {
+                oscClient2 = null;
             }
         }
 
@@ -310,6 +320,7 @@ namespace Microsoft.Samples.Kinect.BodyBasics
         }
 
         OscUdpClient oscClient;
+        OscUdpClient oscClient2;
 
         double maxSumMovement = 0.00001;
         double sumMovementFiltered = 0;
@@ -432,7 +443,7 @@ namespace Microsoft.Samples.Kinect.BodyBasics
                             this.DrawHand(body.HandLeftState, jointPoints[JointType.HandLeft], dc);
                             this.DrawHand(body.HandRightState, jointPoints[JointType.HandRight], dc);
 
-                            maxSumMovement = Math.Max(maxSumMovement, sumMovement) * 0.999;
+                            maxSumMovement = Math.Max(maxSumMovement * 0.95, sumMovement);
 
                             sumMovementFiltered += (sumMovement - sumMovementFiltered) * 0.1;
 
@@ -449,39 +460,60 @@ namespace Microsoft.Samples.Kinect.BodyBasics
                             // Console.Out.WriteLine("CENTER {0} {1}", centerX, centerY);
 
                             var head = body.Joints[JointType.Head];
-                            if ((int)body.HandLeftState > 1 && (int)body.HandRightState > 1 && head.TrackingState == TrackingState.Tracked)
+                            if (head.TrackingState == TrackingState.Tracked)
                             {
-                                handHeightCount++;
-                                handHeadHeight = (body.Joints[JointType.HandLeft].Position.Y + body.Joints[JointType.HandRight].Position.Y) - 2*body.Joints[JointType.Head].Position.Y;
+                                if ((int)body.HandRightState > 1)
+                                {
+                                    handHeightCount++;
+                                    handHeadHeight += 0.3 + body.Joints[JointType.HandRight].Position.Y - body.Joints[JointType.Head].Position.Y;
+                                }
+
+                                if ((int)body.HandLeftState > 1)
+                                {
+                                    handHeightCount++;
+                                    handHeadHeight += 0.3 + body.Joints[JointType.HandLeft].Position.Y - body.Joints[JointType.Head].Position.Y;
+                                } 
+                                
                             }
                         }
+                    }
 
-                        var v = 0.0;
-                        if(handHeightCount > 0) {
-                            v = handHeadHeight / handHeightCount;
-                        }
-                        handHeadHeightFiltered += (v - handHeadHeightFiltered) * 0.3;
+                    var v = 0.0;
+                    if (handHeightCount > 0)
+                    {
+                        v = (handHeadHeight / handHeightCount) * 2;
+                    }
+                    handHeadHeightFiltered += (v - handHeadHeightFiltered) * 0.3;
 
-                        // Console.WriteLine(handHeadHeightFiltered);
+                    // Console.WriteLine(handHeadHeightFiltered);
 
-                        if(handHeadHeightFiltered > 0) {
-                            dc.DrawRectangle(this.handLassoBrush, null, new Rect(0, 70, this.displayWidth*handHeadHeightFiltered / 0.5, 10));
-                        }
-                        
+                    if (handHeadHeightFiltered > 0)
+                    {
+                        dc.DrawRectangle(this.handLassoBrush, null, new Rect(0, 80, this.displayWidth * handHeadHeightFiltered, 10));
+                    }
 
-                        if (oscClient != null)
+
+                    if (oscClient != null)
+                    {
+                        var builder = new MessageBuilder();
+                        builder.SetAddress("/sumMovement");
+                        builder.PushAtom(clamp(sumMovement));
+                        SendMessage(builder);
+
+                        builder = new MessageBuilder();
+                        builder.SetAddress("/handsHeadHeight");
+                        builder.PushAtom(clamp(handHeadHeightFiltered));
+                        SendMessage(builder);
+
+                        if (centers > 0)
                         {
-                            var builder = new MessageBuilder();
-                            builder.SetAddress("/sumMovement");
-                            builder.PushAtom((float)sumMovement);
-
-                            SendMessage(builder);
-
                             builder = new MessageBuilder();
-                            builder.SetAddress("/handsHeadHeight");
-                            builder.PushAtom((float)handHeadHeightFiltered);
-
+                            builder.SetAddress("/centerXY");
+                            builder.PushAtom(clamp(0.5 + sumXpos / centers));
+                            builder.PushAtom(clamp(0.5 + sumYpos / centers));
                             SendMessage(builder);
+
+                            Console.WriteLine(clamp(sumYpos / centers / displayHeight));
                         }
 
                     }
@@ -496,11 +528,27 @@ namespace Microsoft.Samples.Kinect.BodyBasics
         }
 
 
+        private float clamp(double v)
+        {
+            if (v < 0) return 0;
+            if (v > 1) return 1;
+            return (float)v;
+        }
+
+
         private void SendMessage(MessageBuilder builder)
         {
             try
             {
                 oscClient.SendMessageAsync(builder.ToMessage(), null);
+            }
+            catch
+            {
+
+            }
+            try
+            {
+                oscClient2.SendMessageAsync(builder.ToMessage(), null);
             }
             catch
             {
